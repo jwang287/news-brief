@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日新闻简报</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .date-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 { font-size: 1.8rem; margin-bottom: 0.3rem; }
+        .subtitle { opacity: 0.9; font-size: 0.95rem; }
+
+        .refresh-info {
+            margin-top: 0.8rem;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .nav-tab.active {
+            background: #1e3a5f;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .news-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .hot-news .news-card { border-left-color: #ef4444; }
+        .ai-news .news-card { border-left-color: #8b5cf6; }
+
+        .news-card:active { transform: scale(0.98); }
+
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.6rem;
+            gap: 0.8rem;
+        }
+
+        .news-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .source-tag {
+            font-size: 0.7rem;
+            color: #999;
+            background: #f0f0f0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .news-summary {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 0.8rem;
+        }
+
+        .news-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .category-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .heat-indicator {
+            display: flex;
+            gap: 2px;
+        }
+
+        .heat-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #ddd;
+        }
+
+        .heat-dot.active { background: #ef4444; }
+        .ai-news .heat-dot.active { background: #8b5cf6; }
+
+        /* Detail View */
+        .detail-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .detail-view.active { display: block; }
+
+        .detail-header {
+            background: #1e3a5f;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .detail-title {
+            font-size: 1.1rem;
+            flex: 1;
+            line-height: 1.3;
+        }
+
+        .detail-content {
+            padding: 1.5rem;
+        }
+
+        .detail-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .detail-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .detail-text p {
+            margin-bottom: 1rem;
+        }
+
+        /* Twitter Section */
+        .twitter-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .twitter-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .twitter-icon {
+            color: #1da1f2;
+        }
+
+        .tweet-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .tweet-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .tweet-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .tweet-author { flex: 1; }
+        .tweet-name { font-weight: 600; font-size: 0.9rem; }
+        .tweet-handle { font-size: 0.8rem; color: #666; }
+        .tweet-time { font-size: 0.75rem; color: #999; }
+
+        .tweet-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 0.6rem;
+        }
+
+        .tweet-stats {
+            display: flex;
+            gap: 1.2rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .refresh-btn {
+            margin-top: 0.8rem;
+            padding: 0.6rem 1.2rem;
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="date-badge" id="currentDate">2026年2月1日</div>
+        <h1>每日新闻简报</h1>
+        <p class="subtitle">热点与AI资讯一手掌握</p>
+        <p class="refresh-info">🔄 每分钟自动刷新 | 下次更新: <span id="countdown">60</span>秒</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('hot')">🔥 热点新闻</button>
+        <button class="nav-tab" onclick="showTab('ai')">🤖 AI资讯</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hot News -->
+        <section id="hot-section" class="section hot-news active">
+            <div id="hot-list"></div>
+        </section>
+
+        <!-- AI News -->
+        <section id="ai-section" class="section ai-news">
+            <div id="ai-list"></div>
+        </section>
+    </main>
+
+    <!-- Detail View -->
+    <div class="detail-view" id="detailView">
+        <div class="detail-header">
+            <button class="back-btn" onclick="closeDetail()">←</button>
+            <div class="detail-title" id="detailTitle">新闻标题</div>
+        </div>
+        <div class="detail-content">
+            <div class="detail-meta" id="detailMeta"></div>
+            <div class="detail-text" id="detailText"></div>
+            
+            <div class="twitter-section">
+                <div class="twitter-header">
+                    <span class="twitter-icon">🐦</span>
+                    <span>Twitter讨论</span>
+                    <span style="margin-left: auto; color: #999; font-weight: normal; font-size: 0.85rem;" id="tweetCount"></span>
+                </div>
+                <div id="tweetList"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>来自 BBC、Financial Times、TechCrunch 等权威媒体</p>
+        <button class="refresh-btn" onclick="location.reload()">🔄 立即刷新</button>
+    </footer>
+
+    <script>
+        // News Data
+        const hotNews = [
+            {
+                id: 1,
+                title: "爱泼斯坦案新文件曝光，特朗普被数百次提及",
+                summary: "数百万份新文件解封，包含特朗普被数百次提及的内容，政治圈持续震荡。",
+                source: "BBC",
+                heat: 3,
+                category: "政治",
+                time: "2小时前",
+                detail: "美国司法部最新解密的法庭文件显示，在超过300万份与爱泼斯坦案相关的文件中，前总统特朗普的名字被提及超过100次。这些文件包括电子邮件、通话记录和财务文件。\\n\\n其中一封电子邮件显示，爱泼斯坦曾与一位被称为"公爵"的英国王室成员多次通信。法律专家表示，这些文件的公开将对美国政界产生深远影响。",
+                tweets: [
+                    {name: "政治观察家", handle: "@political_watcher", avatar: "政", content: "爱泼斯坦案新文件曝光，特朗普被提及数百次，这将会是2026年最大的政治炸弹", time: "1小时前", likes: "12.5K", retweets: "3.2K"},
+                    {name: "法律专家", handle: "@legal_expert", avatar: "法", content: "从法律角度看，被提及不等于有罪。但这些文件肯定会引发更多调查。", time: "30分钟前", likes: "5.3K", retweets: "1.1K"}
+                ]
+            },
+            {
+                id: 2,
+                title: "特朗普提名凯文·沃什担任美联储主席",
+                summary: "沃什希望缩减美联储资产负债表，投资者预期可能与特朗普产生冲突。",
+                source: "FT",
+                heat: 3,
+                category: "财经",
+                time: "4小时前",
+                detail: "美国总统特朗普正式宣布提名凯文·沃什（Kevin Warsh）担任下一任美联储主席。沃什是前美联储理事，也是著名的"鹰派"人物，一直主张收紧货币政策和缩减美联储资产负债表。\\n\\n分析人士指出，沃什的政策立场与特朗普过去要求降息的立场存在明显分歧。",
+                tweets: [
+                    {name: "华尔街观察", handle: "@wallstreet_watch", avatar: "华", content: "沃什提名 = 鹰派回归。市场预期明年加息概率大增", time: "3小时前", likes: "6.7K", retweets: "1.8K"}
+                ]
+            },
+            {
+                id: 3,
+                title: "以色列空袭加沙致28名巴勒斯坦人死亡",
+                summary: "救援官员称，以色列最新一轮空袭造成至少28名巴勒斯坦人死亡。",
+                source: "BBC",
+                heat: 3,
+                category: "国际",
+                time: "6小时前",
+                detail: "加沙地带卫生部门证实，以色列军队在当地时间周五夜间至周六凌晨发动的多轮空袭中，造成至少28名巴勒斯坦人死亡，其中包括妇女和儿童。\\n\\n国际社会对此反应强烈，联合国呼吁双方立即停火。",
+                tweets: [
+                    {name: "中东观察", handle: "@middleeast_watch", avatar: "中", content: "加沙局势再次升级，国际社会必须采取行动", time: "4小时前", likes: "15.2K", retweets: "4.5K"}
+                ]
+            },
+            {
+                id: 4,
+                title: "刚果（金）矿难致200多人死亡",
+                summary: "刚果民主共和国发生严重矿难，这是该国近年来最严重的矿业事故。",
+                source: "BBC",
+                heat: 2,
+                category: "社会",
+                time: "8小时前",
+                detail: "刚果民主共和国东部一座钴矿发生坍塌事故，造成至少200名矿工死亡。\\n\\n刚果（金）是全球最大的钴生产国，但矿业安全标准长期得不到保障。",
+                tweets: []
+            },
+            {
+                id: 5,
+                title: "美国政府部分停摆",
+                summary: "由于众议院休会未能及时审议，美国联邦政府部分职能出现停摆。",
+                source: "BBC",
+                heat: 2,
+                category: "政治",
+                time: "12小时前",
+                detail: "由于国会未能在最后期限前通过预算案，美国联邦政府部分机构于周六凌晨开始停摆。预计停摆将影响约80万联邦雇员的工资发放。",
+                tweets: []
+            },
+            {
+                id: 6,
+                title: "联合国面临"迫在眉睫的财务崩溃"",
+                summary: "联合国秘书长警告，由于成员国未缴纳费用，联合国面临财务崩溃风险。",
+                source: "BBC",
+                heat: 2,
+                category: "国际",
+                time: "14小时前",
+                detail: "联合国秘书长古特雷斯在向联合国大会提交的财务报告中警告，如果成员国不及时缴纳会费，联合国将在2026年7月前面临"迫在眉睫的财务崩溃"。美国作为最大出资国，仍有超过10亿美元的欠款未缴。",
+                tweets: [
+                    {name: "国际关系", handle: "@intl_relations", avatar: "国", content: "美国欠联合国10亿美元会费，却要求联合国按它的意愿行事。", time: "10小时前", likes: "18.5K", retweets: "5.2K"}
+                ]
+            },
+            {
+                id: 7,
+                title: "黄金价格创纪录上涨后回落",
+                summary: "贵金属市场波动加剧，投资者密切关注美联储政策动向。",
+                source: "BBC",
+                heat: 1,
+                category: "财经",
+                time: "16小时前",
+                detail: "国际金价在本周创下历史新高后大幅回落，周五收盘报每盎司2,750美元。分析师指出，上涨原因包括地缘政治风险、通胀预期以及央行购金。",
+                tweets: []
+            },
+            {
+                id: 8,
+                title: "凯瑟琳·欧哈拉去世，享年71岁",
+                summary: "曾出演《富家穷路》的艾美奖得主去世，众多明星发文悼念。",
+                source: "BBC",
+                heat: 1,
+                category: "娱乐",
+                time: "18小时前",
+                detail: "加拿大著名喜剧演员凯瑟琳·欧哈拉（Catherine O'Hara）于周五在洛杉矶家中去世，享年71岁。她因在《富家穷路》中饰演Moira Rose而广受欢迎。",
+                tweets: [
+                    {name: "影迷会", handle: "@movie_fans", avatar: "影", content: "RIP Catherine O'Hara 《富家穷路》是最好的喜剧之一", time: "15小时前", likes: "45.2K", retweets: "12.8K"}
+                ]
+            }
+        ];
+
+        const aiNews = [
+            {
+                id: 101,
+                title: "亚马逊拟向OpenAI投资500亿美元",
+                summary: "这将是AI领域最大的投资之一，可能改变AI竞争格局。",
+                source: "TechCrunch",
+                heat: 3,
+                category: "AI产业",
+                time: "1小时前",
+                detail: "据知情人士透露，亚马逊正在与OpenAI进行深度谈判，计划投资高达500亿美元。\\n\\n如果交易达成，这将是AI历史上最大的一笔投资，远超微软此前对OpenAI的100亿美元投资。",
+                tweets: [
+                    {name: "科技投资", handle: "@tech_investor", avatar: "科", content: "500亿美元！这将是AI史上最大投资。亚马逊这是要all in AI了", time: "30分钟前", likes: "8.9K", retweets: "2.1K"}
+                ]
+            },
+            {
+                id: 102,
+                title: "马斯克旗下公司 reportedly 考虑合并",
+                summary: "SpaceX、Tesla和xAI可能合并，创造AI巨无霸。",
+                source: "TechCrunch",
+                heat: 3,
+                category: "AI产业",
+                time: "3小时前",
+                detail: "据路透社报道，埃隆·马斯克正在考虑将旗下的SpaceX、Tesla和xAI三家公司合并为一家巨无霸企业。合并后的公司将整合太空探索、电动汽车和人工智能三大领域。",
+                tweets: [
+                    {name: "马斯克粉丝", handle: "@musk_fan", avatar: "马", content: "SpaceX + Tesla + xAI = 人类的未来！", time: "2小时前", likes: "12.3K", retweets: "3.8K"}
+                ]
+            },
+            {
+                id: 103,
+                title: "Anthropic推出Cowork代理插件",
+                summary: "AI代理开始进入日常办公场景。",
+                source: "TechCrunch",
+                heat: 2,
+                category: "AI产品",
+                time: "5小时前",
+                detail: "Anthropic宣布推出Claude for Cowork插件，将AI代理能力带入办公协作场景。新功能允许Claude自动处理邮件、安排会议、起草文档等日常办公任务。",
+                tweets: []
+            },
+            {
+                id: 104,
+                title: "Physical Intelligence打造机器人大脑",
+                summary: "专注于"物理智能"的机器人AI公司，被认为是当前最受关注。",
+                source: "TechCrunch",
+                heat: 2,
+                category: "机器人",
+                time: "6小时前",
+                detail: "Physical Intelligence是一家成立仅一年的初创公司，但已经成为硅谷最热门的机器人AI公司。该公司专注于开发通用的"物理智能"系统，让机器人能够像人类一样理解和操作物理世界。",
+                tweets: [
+                    {name: "机器人专家", handle: "@robotics_pro", avatar: "机", content: "Physical Intelligence在做的是机器人领域的圣杯——通用物理智能。", time: "4小时前", likes: "7.8K", retweets: "1.9K"}
+                ]
+            },
+            {
+                id: 105,
+                title: "OpenClaw AI助手构建自有社交网络",
+                summary: "AI助手正在构建自己的社交网络平台。",
+                source: "TechCrunch",
+                heat: 1,
+                category: "AI创新",
+                time: "8小时前",
+                detail: "OpenClaw宣布其AI助手网络正在形成自主的社交连接，AI代理之间可以相互发现、交流和协作。",
+                tweets: []
+            },
+            {
+                id: 106,
+                title: "Tim Cook的AI变现策略受质疑",
+                summary: "评论认为苹果在AI商业化方面进展缓慢。",
+                source: "TechCrunch",
+                heat: 1,
+                category: "科技",
+                time: "10小时前",
+                detail: "尽管苹果公布了创纪录的iPhone季度销量，但分析师对其AI战略提出了质疑。评论指出，与竞争对手相比，苹果在AI功能商业化方面进展缓慢。",
+                tweets: []
+            }
+        ];
+
+        // Render Functions
+        function renderHeat(heat) {
+            return '<div class="heat-indicator">' + 
+                Array(3).fill(0).map((_, i) => 
+                    '<span class="heat-dot ' + (i < heat ? 'active' : '') + '"></span>'
+                ).join('') + 
+            '</div>';
+        }
+
+        function renderNewsList(newsArray, containerId) {
+            var container = document.getElementById(containerId);
+            var html = '';
+            for (var i = 0; i < newsArray.length; i++) {
+                var news = newsArray[i];
+                html += '<div class="news-card" onclick="openDetail(' + news.id + ', \'' + containerId + '\')">' +
+                    '<div class="news-header">' +
+                        '<div class="news-title">' + news.title + '</div>' +
+                        '<span class="source-tag">' + news.source + '</span>' +
+                    '</div>' +
+                    '<div class="news-summary">' + news.summary + '</div>' +
+                    '<div class="news-footer">' +
+                        '<span class="category-tag">' + renderHeat(news.heat) + ' ' + news.category + '</span>' +
+                        '<span>' + news.time + '</span>' +
+                    '</div>' +
+                '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        // Tab Switching
+        function showTab(tab) {
+            document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+            document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+            
+            if (tab === 'hot') {
+                document.getElementById('hot-section').classList.add('active');
+                document.querySelectorAll('.nav-tab')[0].classList.add('active');
+            } else {
+                document.getElementById('ai-section').classList.add('active');
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
+            }
+        }
+
+        // Detail View
+        function openDetail(id, listType) {
+            var news = listType === 'hot-list' ? hotNews.find(function(n) { return n.id === id; }) : aiNews.find(function(n) { return n.id === id; });
+            if (!news) return;
+
+            document.getElementById('detailTitle').textContent = news.title;
+            document.getElementById('detailMeta').innerHTML = 
+                '<span>' + news.source + '</span>' +
+                '<span>' + news.time + '</span>' +
+                '<span>' + news.category + '</span>';
+            
+            var detailText = news.detail.replace(/\\n\\n/g, '</p><p>').replace(/\\n/g, '<br>');
+            document.getElementById('detailText').innerHTML = '<p>' + detailText + '</p>';
+
+            // Tweets
+            var tweetHtml = '';
+            if (news.tweets && news.tweets.length > 0) {
+                document.getElementById('tweetCount').textContent = news.tweets.length + ' 条推文';
+                for (var i = 0; i < news.tweets.length; i++) {
+                    var t = news.tweets[i];
+                    tweetHtml += '<div class="tweet-card">' +
+                        '<div class="tweet-header">' +
+                            '<div class="tweet-avatar">' + t.avatar + '</div>' +
+                            '<div class="tweet-author">' +
+                                '<div class="tweet-name">' + t.name + '</div>' +
+                                '<div class="tweet-handle">' + t.handle + '</div>' +
+                            '</div>' +
+                            '<span class="tweet-time">' + t.time + '</span>' +
+                        '</div>' +
+                        '<div class="tweet-content">' + t.content + '</div>' +
+                        '<div class="tweet-stats">' +
+                            '<span>❤️ ' + t.likes + '</span>' +
+                            '<span>🔄 ' + t.retweets + '</span>' +
+                        '</div>' +
+                    '</div>';
+                }
+            } else {
+                document.getElementById('tweetCount').textContent = '暂无推文';
+                tweetHtml = '<p style="color: #999; text-align: center; padding: 2rem;">暂无相关Twitter讨论</p>';
+            }
+            document.getElementById('tweetList').innerHTML = tweetHtml;
+
+            document.getElementById('detailView').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetail() {
+            document.getElementById('detailView').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Countdown
+        var countdown = 60;
+        setInterval(function() {
+            countdown--;
+            if (countdown <= 0) {
+                countdown = 60;
+                location.reload();
+            }
+            document.getElementById('countdown').textContent = countdown;
+        }, 1000);
+
+        // Update Date
+        var today = new Date();
+        document.getElementById('currentDate').textContent = today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日';
+
+        // Initial Render
+        renderNewsList(hotNews, 'hot-list');
+        renderNewsList(aiNews, 'ai-list');
+    </script>
+</body>
+</html>
